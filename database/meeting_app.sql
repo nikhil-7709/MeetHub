@@ -1,0 +1,39 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS meetings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  importance TEXT DEFAULT 'Medium',
+  category TEXT DEFAULT 'General',
+  meeting_link TEXT DEFAULT '',
+  host_id INTEGER NOT NULL,
+  starts_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (host_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS participants (
+  meeting_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (meeting_id, user_id),
+  FOREIGN KEY (meeting_id) REFERENCES meetings(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  meeting_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (meeting_id) REFERENCES meetings(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);

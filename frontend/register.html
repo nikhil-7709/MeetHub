@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MeetHub | Create Account</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="auth-body">
+
+    <main class="shell">
+
+        <!-- Brand Section -->
+        <section class="brand">
+            <strong>
+                meet<span class="mark">Hub</span>
+            </strong>
+
+            <div>
+                <h1>
+                    Make room<br>
+                    for good work.
+                </h1>
+
+                <p>
+                    Bring your team together with less friction
+                    and more focus.
+                </p>
+            </div>
+
+            <small>
+                © 2026 MeetHub
+            </small>
+        </section>
+
+
+        <!-- Registration Form -->
+        <section class="form-wrap">
+
+            <form class="form" id="registerForm">
+
+                <h2>Create your account</h2>
+
+                <p class="subtle">
+                    Your meeting space is a few details away.
+                </p>
+
+
+                <!-- Full Name -->
+                <label for="name">Full name</label>
+
+                <input id="name" name="name" type="text" required autocomplete="name">
+
+
+                <!-- Email -->
+                <label for="email">Email</label>
+
+                <input id="email" name="email" type="email" required autocomplete="email">
+
+
+                <!-- Password -->
+                <label for="password">Password</label>
+
+                <input id="password" name="password" type="password" required minlength="6" autocomplete="new-password">
+
+
+                <!-- Error Message -->
+                <div class="error" id="error" role="alert"></div>
+
+
+                <!-- Submit Button -->
+                <button type="submit" class="primary">
+                    Create account
+                </button>
+
+
+                <!-- Login Link -->
+                <p class="subtle">
+                    Already have an account?
+                    <a href="index.html">Sign in</a>
+                </p>
+
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <!-- JavaScript -->
+    <script src="register.js"></script>
+
+</body>
+
+</html>

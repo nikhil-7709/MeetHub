@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>MeetHub | Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="topbar">
+        <a class="logo" href="dashboard.html">meet<span class="mark">Hub</span></a>
+        <div id="networkInfoBar" class="network-info-bar" style="display:none">
+            📡 Others can join at: <strong id="networkAddr"></strong>
+        </div>
+        <button type="button" id="logout">Sign out</button>
+    </header>
+    
+    <main class="main">
+        <section class="welcome">
+            <div>
+                <p class="subtle">Your workspace</p>
+                <h1 id="greeting">Meetings</h1>
+            </div>
+            <button type="button" class="create" id="openCreate">+ New meeting</button>
+        </section>
+
+        <!-- Filters & Search Toolbar -->
+        <section class="filter-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search meetings by title or topic...">
+            </div>
+            <div class="filter-group">
+                <label for="filterImportance">Importance:</label>
+                <select id="filterImportance">
+                    <option value="all">All Priorities</option>
+                    <option value="High">🔴 High Importance</option>
+                    <option value="Medium">🟡 Medium Importance</option>
+                    <option value="Low">🟢 Low Importance</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="meeting-grid" id="meetings"></section>
+    </main>
+
+    <!-- Create Meeting Modal -->
+    <div class="modal" id="modal" hidden>
+        <form class="modal-box" id="meetingForm">
+            <div class="modal-head">
+                <h2>New meeting</h2>
+                <button type="button" class="close" id="closeCreate">×</button>
+            </div>
+            
+            <label for="title">Title *</label>
+            <input id="title" required placeholder="e.g. Project Review & Sync">
+            
+            <div class="form-row">
+                <div class="form-col">
+                    <label for="importance">Importance *</label>
+                    <select id="importance" required>
+                        <option value="High">🔴 High Importance</option>
+                        <option value="Medium" selected>🟡 Medium Importance</option>
+                        <option value="Low">🟢 Low Importance</option>
+                    </select>
+                </div>
+                <div class="form-col">
+                    <label for="category">Category</label>
+                    <select id="category">
+                        <option value="General">General</option>
+                        <option value="Project Sync">Project Sync</option>
+                        <option value="Review">Review & Decision</option>
+                        <option value="Brainstorm">Brainstorming</option>
+                        <option value="1-on-1">1-on-1</option>
+                        <option value="Presentation">Presentation</option>
+                    </select>
+                </div>
+            </div>
+
+            <label for="startsAt">Starts at *</label>
+            <input id="startsAt" type="datetime-local" required>
+
+            <!-- Video Call Link from any app: Google Meet, Zoom, Teams, etc. -->
+            <label for="meetingLink">Video Call Link <span class="label-hint">(Google Meet, Zoom, Teams, Webex…)</span></label>
+            <div class="link-input-wrap">
+                <input id="meetingLink" type="url" placeholder="Paste your meeting link here — e.g. https://meet.google.com/abc-defg-hij" autocomplete="off">
+            </div>
+            <div class="platform-pills">
+                <span class="pill-label">Quick examples:</span>
+                <button type="button" class="platform-pill pill-gmeet" onclick="setPlatformHint('https://meet.google.com/')">
+                    <img src="https://www.gstatic.com/meet/google_meet_horizontal_wordmark_2020q4_1x_icon_124_40_2373e79660dabbf194273d27aa7ee1f5.png" alt="" style="height:14px"> Google Meet
+                </button>
+                <button type="button" class="platform-pill pill-zoom" onclick="setPlatformHint('https://zoom.us/j/')">
+                    📹 Zoom
+                </button>
+                <button type="button" class="platform-pill pill-teams" onclick="setPlatformHint('https://teams.microsoft.com/l/meetup-join/')">
+                    📧 MS Teams
+                </button>
+                <button type="button" class="platform-pill pill-webex" onclick="setPlatformHint('https://webex.com/meet/')">
+                    🌐 Webex
+                </button>
+            </div>
+
+            <label for="description">Description & Agenda</label>
+            <textarea id="description" placeholder="What are the key goals or topics for this meeting?"></textarea>
+            
+            <div class="error" id="error"></div>
+            <button type="submit" class="primary">Create meeting</button>
+        </form>
+    </div>
+
+    <!-- Room Link Success Modal -->
+    <div class="modal" id="roomLinkModal" hidden>
+        <div class="modal-box room-link-modal-box">
+            <div class="modal-head">
+                <h2>🎉 Meeting Created!</h2>
+                <button type="button" class="close" id="closeRoomLinkModal">×</button>
+            </div>
+            <p class="room-link-subtitle" id="roomLinkSubtitle">Share this video call link with your participants:</p>
+            <div class="room-link-display" id="roomLinkDisplay">
+                <span class="link-icon" id="roomLinkIcon">📹</span>
+                <span id="generatedRoomLink" class="room-link-text"></span>
+            </div>
+            <div class="room-link-no-link" id="roomNoLink" style="display:none">
+                <p class="subtle">No video call link was added. You can still open the meeting discussion below.</p>
+            </div>
+            <div class="room-link-actions">
+                <button type="button" class="primary" id="copyRoomLinkBtn">📋 Copy Link</button>
+                <a id="openRoomBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-share btn-ext-join">🚀 Open Call Now</a>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

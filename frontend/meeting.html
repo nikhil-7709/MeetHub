@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>MeetHub | Meeting Room</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="room-page">
+    <header class="topbar">
+        <div class="topbar-left">
+            <a class="logo" href="dashboard.html">meet<span class="mark">Hub</span></a>
+            <a class="back-link" href="dashboard.html">← Back to Meetings</a>
+        </div>
+        <div class="topbar-center">
+            <h2 id="title">Loading meeting...</h2>
+            <div class="card-badges" id="headerBadges"></div>
+        </div>
+        <div class="topbar-right">
+            <button type="button" class="btn-share" id="shareMeetingBtn">📋 Copy Link</button>
+            <button type="button" class="btn-icon" id="toggleInfoBtn" title="Meeting Details">ℹ️</button>
+            <button type="button" id="logout">Sign out</button>
+        </div>
+    </header>
+
+    <!-- Raise Hand Toast Notification -->
+    <div id="handToast" class="toast-notification" hidden>
+        ✋ <span id="toastMessage">Someone raised hand</span>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="stage-container">
+        
+        <!-- Left / Stage Area (Video Grid + Details) -->
+        <main class="stage">
+            
+            <!-- Video Theater Container -->
+            <section class="video-theater" id="videoCallPanel">
+                <div class="theater-topbar">
+                    <div class="theater-status">
+                        <span class="live-status-pill" id="livePill">🔴 LIVE CALL</span>
+                        <span class="room-timer" id="roomTimer">00:00</span>
+                    </div>
+                    <div class="room-link-banner" id="roomLinkBanner">
+                        <span class="link-icon-sm">📹</span>
+                        <span id="roomLinkDisplay" class="room-link-banner-text">Loading...</span>
+                        <button type="button" class="copy-link-btn" id="copyRoomLinkInCall">📋 Copy</button>
+                        <a id="openJitsiBtn" href="#" target="_blank" rel="noopener noreferrer" class="copy-link-btn" style="display:none">🚀 Open Call</a>
+                    </div>
+                    <div class="theater-actions">
+                        <button type="button" class="theater-btn" id="btnFullscreen" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                    </div>
+                </div>
+
+                <!-- Video Cards Grid -->
+                <div class="video-grid" id="videoGrid">
+                    <!-- Local User Video Card -->
+                    <div class="video-card local-card" id="localVideoContainer">
+                        <video id="localVideo" autoplay playsinline muted></video>
+                        <div class="video-overlay">
+                            <span class="user-name" id="localUserName">You</span>
+                            <span class="user-indicators">
+                                <span class="hand-badge" id="localHandBadge" hidden>✋</span>
+                                <span class="mic-status" id="localMicIcon">🎙️</span>
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Remote Videos dynamically inserted here -->
+                </div>
+
+                <!-- Floating Controls Toolbar -->
+                <div class="floating-controls">
+                    <button type="button" class="ctrl-circle" id="btnToggleCam" title="Toggle Camera">
+                        📷 <span id="camBtnLabel">Cam On</span>
+                    </button>
+                    <button type="button" class="ctrl-circle" id="btnToggleMic" title="Toggle Microphone">
+                        🎙️ <span id="micBtnLabel">Mic On</span>
+                    </button>
+                    <button type="button" class="ctrl-circle" id="btnShareScreen" title="Share Screen">
+                        🖥️ <span>Share</span>
+                    </button>
+                    <button type="button" class="ctrl-circle" id="btnRaiseHand" title="Raise Hand">
+                        ✋ <span id="handBtnLabel">Raise Hand</span>
+                    </button>
+                    <button type="button" class="ctrl-circle" id="btnToggleSidebarChat" title="Chat Sidebar">
+                        💬 <span>Chat</span>
+                    </button>
+                    <button type="button" class="ctrl-circle" id="btnToggleSidebarPeople" title="Participants">
+                        👥 <span>People</span>
+                    </button>
+                    <button type="button" class="ctrl-circle btn-leave" id="btnLeaveCall" title="Leave Call">
+                        📞 <span>Leave</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Meeting Info & Description Block -->
+            <section class="meeting-details-card">
+                <div class="details-header">
+                    <div>
+                        <h3>📌 Agenda & Details</h3>
+                        <p class="subtle" id="details"></p>
+                    </div>
+                    <div id="videoActionContainer"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Right Collapsible Sidebar (Chat & Participants) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-tabs">
+                <button type="button" class="tab-btn active" id="tabChatBtn">💬 Chat (<span id="msgCount">0</span>)</button>
+                <button type="button" class="tab-btn" id="tabPeopleBtn">👥 People (<span id="peopleCount">1</span>)</button>
+                <button type="button" class="close-sidebar" id="closeSidebarBtn">×</button>
+            </div>
+
+            <!-- Tab 1: Messages Panel -->
+            <div class="tab-panel active" id="panelChat">
+                <div class="messages-list" id="messages"></div>
+                <form class="composer" id="messageForm">
+                    <input id="body" placeholder="Send a message to everyone..." autocomplete="off" required>
+                    <button type="submit" class="primary-send">Send</button>
+                </form>
+                <div class="error" id="error"></div>
+            </div>
+
+            <!-- Tab 2: Participants Panel -->
+            <div class="tab-panel" id="panelPeople">
+                <div class="people-list" id="peopleList"></div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="meeting.js"></script>
+</body>
+</html>

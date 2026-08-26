@@ -1,0 +1,25 @@
+{
+  "name": "meeting-app-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test:db": "node test-connection.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "mysql2": "^3.23.4",
+    "sqlite3": "^5.1.7"
+  },
+  "description": "",
+  "main": "db.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
