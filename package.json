@@ -1,0 +1,15 @@
+{
+  "name": "meethub",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "mysql2": "^3.23.4",
+    "sqlite3": "^5.1.7"
+  }
+}

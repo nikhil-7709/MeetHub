@@ -9,7 +9,7 @@
 <body>
     <header class="topbar">
         <a class="logo" href="dashboard.html">meet<span class="mark">Hub</span></a>
-        <div id="networkInfoBar" class="network-info-bar" style="display:none">
+        <div id="networkInfoBar" class="network-info-bar">
             📡 Others can join at: <strong id="networkAddr"></strong>
         </div>
         <button type="button" id="logout">Sign out</button>
@@ -87,7 +87,7 @@
             <div class="platform-pills">
                 <span class="pill-label">Quick examples:</span>
                 <button type="button" class="platform-pill pill-gmeet" onclick="setPlatformHint('https://meet.google.com/')">
-                    <img src="https://www.gstatic.com/meet/google_meet_horizontal_wordmark_2020q4_1x_icon_124_40_2373e79660dabbf194273d27aa7ee1f5.png" alt="" style="height:14px"> Google Meet
+                    <img class="platform-logo" src="https://www.gstatic.com/meet/google_meet_horizontal_wordmark_2020q4_1x_icon_124_40_2373e79660dabbf194273d27aa7ee1f5.png" alt=""> Google Meet
                 </button>
                 <button type="button" class="platform-pill pill-zoom" onclick="setPlatformHint('https://zoom.us/j/')">
                     📹 Zoom
@@ -115,17 +115,23 @@
                 <h2>🎉 Meeting Created!</h2>
                 <button type="button" class="close" id="closeRoomLinkModal">×</button>
             </div>
-            <p class="room-link-subtitle" id="roomLinkSubtitle">Share this video call link with your participants:</p>
+            <p class="room-link-subtitle" id="roomLinkSubtitle">Share this MeetHub invite link with your participants:</p>
             <div class="room-link-display" id="roomLinkDisplay">
-                <span class="link-icon" id="roomLinkIcon">📹</span>
+                <span class="link-icon" id="roomLinkIcon">🔗</span>
                 <span id="generatedRoomLink" class="room-link-text"></span>
             </div>
-            <div class="room-link-no-link" id="roomNoLink" style="display:none">
-                <p class="subtle">No video call link was added. You can still open the meeting discussion below.</p>
+            <p class="room-link-subtitle" id="callLinkSubtitle">Join the live video meeting here:</p>
+            <div class="room-link-display call-link-display" id="callLinkDisplay">
+                <span class="link-icon">📹</span>
+                <span id="generatedCallLink" class="room-link-text"></span>
             </div>
             <div class="room-link-actions">
-                <button type="button" class="primary" id="copyRoomLinkBtn">📋 Copy Link</button>
-                <a id="openRoomBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-share btn-ext-join">🚀 Open Call Now</a>
+                <button type="button" class="primary" id="copyRoomLinkBtn">📋 Copy Invite Link</button>
+                <a id="openRoomBtn" href="#" class="btn-share btn-ext-join">🚀 Open Meeting</a>
+            </div>
+            <div class="room-link-actions call-link-actions">
+                <button type="button" class="primary" id="copyCallLinkBtn">📋 Copy Join Link</button>
+                <a id="openCallBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-share btn-ext-join">🎥 Join Video Meeting</a>
             </div>
         </div>
     </div>
@@ -133,4 +139,4 @@
 
     <script src="dashboard.js"></script>
 </body>
-</html>
+</html>

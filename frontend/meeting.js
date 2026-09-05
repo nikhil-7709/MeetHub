@@ -23,9 +23,9 @@ function detectPlatformInRoom(url) {
 
 const getApiUrl = (path) => {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (window.location.port !== '3000') {
-    const host = window.location.hostname || 'localhost';
-    return `http://${host}:3000${path}`;
+  if (window.location.protocol === 'file:' ||
+      ['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port !== '3000') {
+    return `http://localhost:3000${path}`;
   }
   return path;
 };
@@ -41,6 +41,16 @@ const api = (url, options = {}) => fetch(getApiUrl(url), {
 
 // Real LAN IP for cross-device invite links
 let serverBaseUrl = window.location.origin; // fallback until fetched
+
+function getMeetingPageUrl() {
+  const fallbackOrigin = window.location.origin === 'null'
+    ? getApiUrl('/')
+    : window.location.origin;
+  const meetingUrl = new URL('/meeting.html', serverBaseUrl && serverBaseUrl !== 'null' ? serverBaseUrl : fallbackOrigin);
+  meetingUrl.searchParams.set('id', meetingId);
+  return meetingUrl.href;
+}
+
 async function fetchServerIp() {
   try {
     const res = await fetch(getApiUrl('/api/server-info'));
@@ -70,6 +80,7 @@ let lastSignalTime = 0;
 let roomSeconds = 0;
 let roomTimerInterval = null;
 const peerConnections = new Map(); // peerId -> RTCPeerConnection
+const pendingCandidates = new Map();
 const activeParticipants = new Map(); // peerId -> { name, isHost, isMicOn, isCamOn, isHandRaised }
 
 const rtcConfig = {
@@ -155,27 +166,26 @@ async function load() {
       container.prepend(linkBtn);
     }
 
-    // Populate the in-call link banner with the real Jitsi Meet link
+    const callLink = m.meeting_link || `https://meet.jit.si/MeetHub-${m.id}`;
+
+    // Populate the call banner with the same deterministic room for every participant
     const roomLinkDisplay = document.querySelector('#roomLinkDisplay');
     const copyRoomLinkInCall = document.querySelector('#copyRoomLinkInCall');
     const openJitsiBtn = document.querySelector('#openJitsiBtn');
     if (roomLinkDisplay) {
-      if (m.meeting_link) {
-        roomLinkDisplay.textContent = m.meeting_link;
-        if (openJitsiBtn) { openJitsiBtn.href = m.meeting_link; openJitsiBtn.style.display = ''; }
+      if (callLink) {
+        roomLinkDisplay.textContent = callLink;
+        if (openJitsiBtn) { openJitsiBtn.href = callLink; openJitsiBtn.style.display = ''; }
         if (copyRoomLinkInCall) {
           copyRoomLinkInCall.onclick = () => {
-            navigator.clipboard.writeText(m.meeting_link).then(() => {
+            navigator.clipboard.writeText(callLink).then(() => {
               const orig = copyRoomLinkInCall.innerHTML;
               copyRoomLinkInCall.innerHTML = '✅ Copied!';
               copyRoomLinkInCall.classList.add('copied');
               setTimeout(() => { copyRoomLinkInCall.innerHTML = orig; copyRoomLinkInCall.classList.remove('copied'); }, 2500);
-            }).catch(() => alert(`Video Call Link:\n${m.meeting_link}`));
+            }).catch(() => alert(`Video Call Link:\n${callLink}`));
           };
         }
-      } else {
-        roomLinkDisplay.textContent = 'No video call link for this meeting';
-        if (copyRoomLinkInCall) copyRoomLinkInCall.style.display = 'none';
       }
     }
 
@@ -233,6 +243,13 @@ function renderPeopleList() {
 
 async function startVideoCall() {
   try {
+    const isLocalHost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+    if (!window.isSecureContext && !isLocalHost) {
+      const errorEl = document.querySelector('#error');
+      if (errorEl) errorEl.textContent = 'This page is using an insecure LAN connection. Use Open Call above for the shared video meeting.';
+      return;
+    }
+
     // 1. Get Camera Stream
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localVideo.srcObject = localStream;
@@ -255,6 +272,8 @@ async function startVideoCall() {
       signalingInterval = setInterval(pollSignals, 1500);
     } catch (e) {
       console.error('No media devices available:', e);
+      const errorEl = document.querySelector('#error');
+      if (errorEl) errorEl.textContent = 'Camera and microphone are unavailable here. Use Open Call above to join the shared meeting.';
     }
   }
 }
@@ -307,23 +326,33 @@ async function handleIncomingSignal(sig) {
   }
 
   if (type === 'join') {
-    const pc = createPeerConnection(senderId, senderName);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    await sendSignal(senderId, 'offer', offer);
+    if (Number(userId) > Number(senderId)) {
+      const pc = createPeerConnection(senderId, senderName);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await sendSignal(senderId, 'offer', offer);
+    }
   } else if (type === 'offer') {
     const pc = createPeerConnection(senderId, senderName);
     await pc.setRemoteDescription(new RTCSessionDescription(payload));
+    await flushPendingCandidates(senderId, pc);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await sendSignal(senderId, 'answer', answer);
   } else if (type === 'answer') {
     const pc = peerConnections.get(senderId);
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(payload));
+    if (pc) {
+      await pc.setRemoteDescription(new RTCSessionDescription(payload));
+      await flushPendingCandidates(senderId, pc);
+    }
   } else if (type === 'candidate') {
     const pc = peerConnections.get(senderId);
-    if (pc && payload) {
-      try { await pc.addIceCandidate(new RTCIceCandidate(payload)); } catch (e) {}
+    if (pc && payload && pc.remoteDescription) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(payload)); } catch (e) { console.warn('ICE candidate rejected:', e); }
+    } else if (payload) {
+      const candidates = pendingCandidates.get(senderId) || [];
+      candidates.push(payload);
+      pendingCandidates.set(senderId, candidates);
     }
   } else if (type === 'raise-hand') {
     const p = activeParticipants.get(senderId);
@@ -348,6 +377,14 @@ async function handleIncomingSignal(sig) {
     }
   } else if (type === 'leave') {
     removePeer(senderId);
+  }
+}
+
+async function flushPendingCandidates(peerId, pc) {
+  const candidates = pendingCandidates.get(peerId) || [];
+  pendingCandidates.delete(peerId);
+  for (const candidate of candidates) {
+    try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn('ICE candidate rejected:', e); }
   }
 }
 
@@ -564,8 +601,8 @@ function switchTab(tab) {
 const shareMeetingBtn = document.querySelector('#shareMeetingBtn');
 if (shareMeetingBtn) {
   shareMeetingBtn.onclick = () => {
-    const meetingUrl = `${serverBaseUrl}/meeting.html?id=${meetingId}`;
-    navigator.clipboard.writeText(meetingUrl).then(() => {
+    const meetingUrl = getMeetingPageUrl();
+      navigator.clipboard.writeText(meetingUrl).then(() => {
       const originalText = shareMeetingBtn.innerHTML;
       shareMeetingBtn.innerHTML = '✅ Copied!';
       shareMeetingBtn.classList.add('copied');
@@ -628,4 +665,4 @@ function escapeHtml(value) {
 fetchServerIp().then(() => load());
 
 
-
+

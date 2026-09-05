@@ -25,6 +25,14 @@ const sessions = new Map();
 
 app.use(cors());
 app.use(express.json());
+app.use(async (req, res, next) => {
+  try {
+    await db.ready;
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Database initialization failed.' });
+  }
+});
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 function hashPassword(password) {
@@ -232,20 +240,21 @@ app.get('/api/meetings/:id/signal', auth, async (req, res) => {
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html')));
 
-const server = app.listen(port, () => {
-  console.log(`\n✅ MeetHub server started!`);
-  console.log(`   Local:   http://localhost:${port}`);
-  console.log(`   Network: http://${localIp}:${port}  ← share this with other devices\n`);
-  db.testConnection().then(connected => {
-    if (connected) {
-      console.log('Database connection verified successfully on server start.');
-    } else {
-      console.error('Warning: Database connection verification failed on server start.');
-    }
+if (require.main === module) {
+  const server = app.listen(port, () => {
+    console.log(`\n✅ MeetHub server started!`);
+    console.log(`   Local:   http://localhost:${port}`);
+    console.log(`   Network: http://${localIp}:${port}  ← share this with other devices\n`);
+    db.testConnection().then(connected => {
+      if (connected) {
+        console.log('Database connection verified successfully on server start.');
+      } else {
+        console.error('Warning: Database connection verification failed on server start.');
+      }
+    });
   });
-});
 
-server.on('error', (err) => {
+  server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`\n❌ Error: Port ${port} is already in use!`);
     console.log(`Another process (or an earlier instance of server.js) is already running on port ${port}.\n`);
@@ -258,6 +267,9 @@ server.on('error', (err) => {
   } else {
     throw err;
   }
-});
+  });
+}
 
-
+module.exports = app;
+
+

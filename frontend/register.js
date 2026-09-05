@@ -1,8 +1,8 @@
 const getApiUrl = (path) => {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (window.location.port !== '3000') {
-    const host = window.location.hostname || 'localhost';
-    return `http://${host}:3000${path}`;
+  if (window.location.protocol === 'file:' ||
+      ['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port !== '3000') {
+    return `http://localhost:3000${path}`;
   }
   return path;
 };
@@ -44,4 +44,4 @@ document.querySelector('#registerForm').addEventListener('submit', async (event)
   } catch (err) {
     error.textContent = 'Cannot connect to server. Make sure backend is running.';
   }
-});
+});

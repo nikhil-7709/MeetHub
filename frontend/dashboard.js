@@ -3,9 +3,9 @@ if (!token) location.href = 'index.html';
 
 const getApiUrl = (path) => {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (window.location.port !== '3000') {
-    const host = window.location.hostname || 'localhost';
-    return `http://${host}:3000${path}`;
+  if (window.location.protocol === 'file:' ||
+      ['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port !== '3000') {
+    return `http://localhost:3000${path}`;
   }
   return path;
 };
@@ -25,7 +25,19 @@ const searchInput = document.querySelector('#searchInput');
 const filterImportance = document.querySelector('#filterImportance');
 
 let allMeetings = [];
-let serverBaseUrl = window.location.origin; // fallback
+let serverBaseUrl = window.location.origin;
+
+function getMeetingInviteUrl(meetingId) {
+  const fallbackOrigin = window.location.origin === 'null'
+    ? getApiUrl('/')
+    : window.location.origin;
+  const baseUrl = serverBaseUrl && serverBaseUrl !== 'null'
+    ? serverBaseUrl
+    : fallbackOrigin;
+  const inviteUrl = new URL('/meeting.html', baseUrl);
+  inviteUrl.searchParams.set('id', meetingId);
+  return inviteUrl.href;
+}
 
 // Detects which platform a meeting link belongs to
 function detectPlatform(url) {
@@ -38,6 +50,10 @@ function detectPlatform(url) {
   if (url.includes('meet.jit.si'))       return { name: 'Jitsi Meet',    icon: '📹', color: '#0098a0' };
   if (url.includes('gotomeeting.com'))   return { name: 'GoToMeeting',   icon: '📞', color: '#ed7d31' };
   return { name: 'Video Call', icon: '🔗', color: '#1f6956' };
+}
+
+function getVideoCallLink(meeting) {
+  return meeting.meeting_link || `https://meet.jit.si/MeetHub-${meeting.id}`;
 }
 
 // Called by platform pill buttons — sets prefix in input so user fills the rest
@@ -63,7 +79,7 @@ async function fetchServerIp() {
         const addr = document.querySelector('#networkAddr');
         if (bar && addr) {
           addr.textContent = `http://${ip}:${port}`;
-          bar.style.display = 'flex';
+          bar.classList.add('is-visible');
         }
       }
     }
@@ -78,8 +94,11 @@ document.querySelector('#closeCreate').onclick = () => { modal.hidden = true; };
 // Room Link Modal wiring
 const roomLinkModal = document.querySelector('#roomLinkModal');
 const generatedRoomLinkEl = document.querySelector('#generatedRoomLink');
+const generatedCallLinkEl = document.querySelector('#generatedCallLink');
 const copyRoomLinkBtn = document.querySelector('#copyRoomLinkBtn');
+const copyCallLinkBtn = document.querySelector('#copyCallLinkBtn');
 const openRoomBtn = document.querySelector('#openRoomBtn');
+const openCallBtn = document.querySelector('#openCallBtn');
 document.querySelector('#closeRoomLinkModal').onclick = () => { roomLinkModal.hidden = true; };
 
 copyRoomLinkBtn.onclick = () => {
@@ -91,6 +110,17 @@ copyRoomLinkBtn.onclick = () => {
     copyRoomLinkBtn.classList.add('copied');
     setTimeout(() => { copyRoomLinkBtn.innerHTML = orig; copyRoomLinkBtn.classList.remove('copied'); }, 2500);
   }).catch(() => alert(`Video Call Link:\n${link}`));
+};
+
+copyCallLinkBtn.onclick = () => {
+  const link = generatedCallLinkEl.textContent;
+  if (!link) return;
+  navigator.clipboard.writeText(link).then(() => {
+    const orig = copyCallLinkBtn.innerHTML;
+    copyCallLinkBtn.innerHTML = '✅ Copied!';
+    copyCallLinkBtn.classList.add('copied');
+    setTimeout(() => { copyCallLinkBtn.innerHTML = orig; copyCallLinkBtn.classList.remove('copied'); }, 2500);
+  }).catch(() => alert(`Join Video Meeting:\n${link}`));
 };
 
 async function loadMeetings() {
@@ -126,14 +156,10 @@ function renderMeetings() {
     const cat = meeting.category || 'General';
     const impBadgeClass = imp === 'High' ? 'badge-high' : imp === 'Low' ? 'badge-low' : 'badge-medium';
     // Use the stored link — could be Google Meet, Zoom, Teams, etc.
-    const jitsiLink = meeting.meeting_link || '';
+    const jitsiLink = getVideoCallLink(meeting);
     const platform = detectPlatform(jitsiLink);
-    const joinBtn = jitsiLink
-      ? `<a href="${escapeHtml(jitsiLink)}" target="_blank" rel="noopener noreferrer" class="btn-video btn-ext-join" style="background:${platform.color}">${platform.icon} Join ${platform.name}</a>`
-      : '';
-    const linkStrip = jitsiLink
-      ? `<div class="room-link-strip"><span class="jitsi-logo">${platform.icon}</span><span class="room-link-strip-text">${escapeHtml(jitsiLink)}</span><button class="copy-strip-btn" onclick="copyLinkDirect(event, '${escapeHtml(jitsiLink)}')">Copy</button></div>`
-      : '';
+    const joinBtn = `<a href="${escapeHtml(jitsiLink)}" target="_blank" rel="noopener noreferrer" class="btn-video btn-ext-join" style="background:${platform.color}">${platform.icon} Join ${platform.name}</a>`;
+    const linkStrip = `<div class="room-link-strip"><span class="jitsi-logo">${platform.icon}</span><span class="room-link-strip-text">${escapeHtml(jitsiLink)}</span><button class="copy-strip-btn" onclick="copyLinkDirect(event, '${escapeHtml(jitsiLink)}')">Copy</button></div>`;
 
     return `
       <article class="meeting-card priority-${imp.toLowerCase()}">
@@ -149,7 +175,7 @@ function renderMeetings() {
         </div>
         <div class="card-actions">
           <button class="primary" onclick="location.href='meeting.html?id=${meeting.id}'">Open Discussion</button>
-          <button class="btn-share" onclick="copyMeetingLink(event, '${escapeHtml(jitsiLink)}')">📋 Copy Invite Link</button>
+          <button class="btn-share" onclick="copyMeetingLink(event, '${meeting.id}')">📋 Copy Invite Link</button>
           ${joinBtn}
         </div>
         ${linkStrip}
@@ -158,15 +184,15 @@ function renderMeetings() {
   }).join('');
 }
 
-function copyMeetingLink(event, jitsiLink) {
+function copyMeetingLink(event, meetingId) {
   const btn = event.currentTarget;
-  if (!jitsiLink) { alert('No video call link for this meeting.'); return; }
-  navigator.clipboard.writeText(jitsiLink).then(() => {
+  const inviteLink = getMeetingInviteUrl(meetingId);
+  navigator.clipboard.writeText(inviteLink).then(() => {
     const originalText = btn.innerHTML;
     btn.innerHTML = '✅ Copied!';
     btn.classList.add('copied');
     setTimeout(() => { btn.innerHTML = originalText; btn.classList.remove('copied'); }, 2500);
-  }).catch(() => alert(`Video Call Link:\n${jitsiLink}`));
+  }).catch(() => alert(`MeetHub Invite Link:\n${inviteLink}`));
 }
 
 function copyLinkDirect(event, link) {
@@ -221,32 +247,26 @@ document.querySelector('#meetingForm').onsubmit = async (event) => {
     modal.hidden = true;
     form.reset();
 
-    // Show the user's own video call link in the success modal
-    const platform = detectPlatform(userMeetingLink);
+    await fetchServerIp();
+    const inviteLink = getMeetingInviteUrl(data.id);
+    const callLink = userMeetingLink || `https://meet.jit.si/MeetHub-${data.id}`;
     const linkDisplayEl = document.querySelector('#roomLinkDisplay');
-    const roomNoLink = document.querySelector('#roomNoLink');
     const roomLinkIcon = document.querySelector('#roomLinkIcon');
     const roomLinkSubtitle = document.querySelector('#roomLinkSubtitle');
 
-    if (userMeetingLink) {
-      generatedRoomLinkEl.textContent = userMeetingLink;
-      openRoomBtn.href = userMeetingLink;
-      openRoomBtn.style.display = '';
-      copyRoomLinkBtn.style.display = '';
-      if (linkDisplayEl) linkDisplayEl.style.display = '';
-      if (roomNoLink) roomNoLink.style.display = 'none';
-      if (roomLinkIcon) roomLinkIcon.textContent = platform.icon;
-      if (roomLinkSubtitle) roomLinkSubtitle.innerHTML = `Your <strong>${platform.name}</strong> link is ready — share it with participants:`;
-    } else {
-      if (linkDisplayEl) linkDisplayEl.style.display = 'none';
-      if (roomNoLink) roomNoLink.style.display = '';
-      openRoomBtn.style.display = 'none';
-      copyRoomLinkBtn.style.display = 'none';
-      if (roomLinkSubtitle) roomLinkSubtitle.textContent = 'Meeting created! No video call link was added.';
-    }
+    generatedRoomLinkEl.textContent = inviteLink;
+    generatedCallLinkEl.textContent = callLink;
+    openRoomBtn.href = inviteLink;
+    openCallBtn.href = callLink;
+    openRoomBtn.style.display = '';
+    copyRoomLinkBtn.style.display = '';
+    if (linkDisplayEl) linkDisplayEl.style.display = '';
+    if (roomLinkIcon) roomLinkIcon.textContent = '🔗';
+    if (roomLinkSubtitle) roomLinkSubtitle.textContent = userMeetingLink
+      ? 'Share this MeetHub invite link. It opens the meeting and keeps the video call link inside.'
+      : 'Share this MeetHub invite link with your participants:';
     roomLinkModal.hidden = false;
 
-    await fetchServerIp();
     loadMeetings();
   } catch (err) {
     errorEl.textContent = 'Server connection error. Please try again.';
@@ -263,4 +283,4 @@ function escapeHtml(value) {
   }[character]));
 }
 
-loadMeetings();
+fetchServerIp().finally(loadMeetings);
