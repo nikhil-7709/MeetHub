@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "backend/server.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "backend/server.js" },
-    { "src": "/(.*)", "dest": "backend/server.js" }
+  "functions": {
+    "api/[...path].js": {
+      "includeFiles": ["frontend/**", "database/meeting_app.sql"]
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/frontend/index.html" }
   ]
 }
